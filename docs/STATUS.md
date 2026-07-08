@@ -3,13 +3,14 @@
 Single source of truth for progress. Orchestrator writes this; workers report via their task
 notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review` · `done`.
 
-**As of:** 2026-07-08 (initial scaffold).
+**As of:** 2026-07-08 (scaffold + WP-1/2/3/4 verified). One-command verification:
+`scripts/check_all.sh` (codegen sync-check on all specs + host pytest + 13 sims) — **all green.**
 
 | WP | Title | State | Owner | Evidence |
 |----|-------|-------|-------|----------|
 | WP-0 | Register-spec codegen | **done (scaffold)** | — | `regspec/` runs; `core.yaml` → V/Py/MD; `--check` green; generated Python imports; Verilog reviewed |
 | WP-1 | Generated-regfile self-checking testbench | **done** | — | `regspec/tb/tb_regfile.v` PASSES in Icarus (reset/const/rw/wstrb/input/ro-protect) |
-| WP-2 | RTL library parameterization + tb port | in-progress | — | 9 module tbs ported + passing via `scripts/run_sims.sh` (10/10 green). Remaining: tbs for thin adapters (adc/dac_interface, adc_mux, sign_extend, nco_summer); `streaming_buffer` words_per_record param |
+| WP-2 | RTL library parameterization + tb port | **done** | — | 12 module tbs pass via `scripts/run_sims.sh` (13/13 with tb_regfile). Untested by design: pure pin-driver bus modules `adc_interface`/`dac_interface`. `streaming_buffer` words_per_record param = follow-up. |
 | WP-3 | Host package integration test | **done** | — | `pytest host/rp_optomech/tests/` → 9 passed (fake daemon; BoardSession/StreamReader/FeedbackController) |
 | WP-4 | Spin-controller migration example | **done** | — | `spin_controller.yaml` (42 regs) → generated; `verify_offsets.py` PASSES (0x00..0xA4 exact) |
 | WP-5 | Lock-in measurement block | blocked (interface freeze) | — | `lock_in.v` stub in place |
@@ -27,7 +28,14 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
 - **Design docs** (`docs/`): SCOPE, ARCHITECTURE, INTERFACES, DECISIONS, PLAN, this file,
   PORTING; plus `regspec/SCHEMA.md` and role prompts.
 
+## Done since scaffold (all verified locally)
+- **WP-1** generated-regfile testbench (`tb_regfile` PASS).
+- **WP-2** RTL library testbenches (12 modules, `run_sims.sh` 13/13).
+- **WP-3** host integration tests (`pytest` 9/9, fake daemon).
+- **WP-4** spin-controller migration (42 regs reproduced exactly, `verify_offsets.py` PASS).
+- `scripts/check_all.sh` + `.github/workflows/ci.yml` — one-command / CI verification.
+
 ## Not yet done
-Testbenches for the generated regfile and the ported RTL; the host mock/integration test; the
-full spin-controller 42-register migration; the lock-in completion; the block-design generator;
-any hardware bring-up. See PLAN for the ordered path.
+The lock-in measurement block completion (WP-5); the spec-driven block-design generator (WP-6);
+the nanosphere downstream build (WP-7); `streaming_buffer` record-width parameterization; and any
+hardware bring-up (needs a board + Vivado). See PLAN for the ordered path.

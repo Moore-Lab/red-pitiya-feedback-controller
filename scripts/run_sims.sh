@@ -54,6 +54,9 @@ run tb_streaming_buffer ""      "$ROOT"       rtl/tb/tb_streaming_buffer.v rtl/i
 run tb_sync_io          "-DSIM" "$ROOT"       rtl/tb/tb_sync_io.v          rtl/infra/sync_io.v
 run tb_dac_sine         ""      "$ROOT/build"  rtl/tb/tb_dac_sine.v         rtl/dsp/dac_sine.v
 run tb_comp_fir         ""      "$ROOT/build"  rtl/tb/tb_comp_fir.v         rtl/dsp/comp_fir.v
+run tb_nco_summer       ""      "$ROOT"       rtl/tb/tb_nco_summer.v       rtl/dsp/nco_summer.v
+run tb_adc_mux          ""      "$ROOT"       rtl/tb/tb_adc_mux.v          rtl/io/adc_mux.v
+run tb_sign_extend      ""      "$ROOT"       rtl/tb/tb_sign_extend_14to16.v rtl/io/sign_extend_14to16.v
 
 echo ""
 echo "== $pass passed, $fail failed =="

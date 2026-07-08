@@ -36,6 +36,14 @@ and regenerate.
 - `examples/` — `spin_controller/` (reference), `nanosphere/` (skeleton).
 - `docs/`, `roles/` — the workspace + execution protocol.
 
+## Verify everything
+```
+scripts/check_all.sh   # codegen sync-check (all specs) + host pytest + 13 Icarus sims
+scripts/run_sims.sh    # just the RTL + regfile testbenches
+python -m pytest host/rp_optomech/tests/   # just the host package
+```
+Needs `python` (PyYAML, numpy, pytest) + `iverilog`/`vvp` on PATH. CI: `.github/workflows/ci.yml`.
+
 ## Conventions
 - **Spec before code; simulate before hardware.** Every RTL module gets an Icarus testbench that
   passes before any bitstream. Build with `-jobs 1`, gate on WNS ≥ 0.

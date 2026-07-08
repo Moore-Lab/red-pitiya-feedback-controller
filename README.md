@@ -68,8 +68,17 @@ Vivado ML 2025.2.1 (Zynq-7000 device files) · Icarus Verilog (sim) · Python 3 
 (host/codegen; the board daemon and generated register module are stdlib-only Python 3.5) · a
 Red Pitaya STEMlab 125-14.
 
+## Verify everything
+```
+scripts/check_all.sh    # codegen sync-check (all specs) + host pytest + 13 Icarus sims
+```
+Needs `python` (+ PyYAML, numpy, pytest) and `iverilog`/`vvp`. Also runs in CI
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
 ## Status
-Initial scaffold. **Working & verified:** the register-spec codegen. **Seeded:** the RTL library
-(15 proven modules) and the host package. **Next:** testbenches for the generated regfile and
-ported RTL, the spin-controller migration, the lock-in block, and the block-design generator —
-see [`docs/PLAN.md`](docs/PLAN.md).
+**Verified (WP-0..4):** the register-spec codegen; a self-checking AXI4-Lite testbench for the
+generated register file; 12 ported RTL-library testbenches (13/13 sims green); the host package
+integration tests (9/9); and the **full spin-controller 42-register map reproduced exactly**
+(`examples/spin_controller/verify_offsets.py`). **Next:** the lock-in measurement block, the
+spec-driven block-design generator, and the nanosphere downstream build — see
+[`docs/PLAN.md`](docs/PLAN.md) / [`docs/STATUS.md`](docs/STATUS.md).
