@@ -27,8 +27,12 @@ Install on the connected machine (the versions the reference spin controller use
 ```bash
 scripts/check_all.sh
 ```
-Expect: 3 specs in sync, 20 Python tests, 14 Icarus sims — all green. If this passes, the
-register codegen, the RTL library, and the host package are intact on your machine.
+Expect: 3 specs in sync, 20 Python tests, 16 Icarus sims — all green. If this passes, the
+register codegen, the RTL library, and the host package are intact on your machine. Two of the
+sims (`tb_lane_datapath`, `tb_lane_closed_loop`) are **whole-lane composition** tests: they wire
+`nco_summer → dac_sine → sign_extend → freq_counter` (+ PID + lock) into a loop and confirm it
+acquires and holds a commanded frequency. That means the block-design wiring below is
+transcribing an already-verified RTL composition — not debugging it from scratch.
 
 ## 2. What's already done (don't rebuild it)
 

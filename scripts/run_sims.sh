@@ -59,6 +59,13 @@ run tb_adc_mux          ""      "$ROOT"       rtl/tb/tb_adc_mux.v          rtl/i
 run tb_sign_extend      ""      "$ROOT"       rtl/tb/tb_sign_extend_14to16.v rtl/io/sign_extend_14to16.v
 run tb_lock_in          ""      "$ROOT/build"  rtl/tb/tb_lock_in.v          rtl/measurement/lock_in.v
 
+echo "== lane integration =="
+run tb_lane_datapath    ""      "$ROOT/build"  rtl/tb/tb_lane_datapath.v \
+    rtl/dsp/nco_summer.v rtl/dsp/dac_sine.v rtl/io/sign_extend_14to16.v rtl/measurement/freq_counter.v
+run tb_lane_closed_loop ""      "$ROOT/build"  rtl/tb/tb_lane_closed_loop.v \
+    rtl/feedback/lock_acquisition.v rtl/feedback/pid_controller.v rtl/dsp/nco_summer.v \
+    rtl/dsp/dac_sine.v rtl/io/sign_extend_14to16.v rtl/measurement/freq_counter.v
+
 echo ""
 echo "== $pass passed, $fail failed =="
 if [ $fail -ne 0 ]; then echo "failed:$failed_list"; exit 1; fi

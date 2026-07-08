@@ -38,7 +38,11 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
   `sync_control` register in `core.yaml`, and `sync_reset`/`sync_slave_mode` hooks on both
   measurement blocks (`tb_lock_in` slave-mode case PASS). Block-design wiring is the remaining
   step (WP-6) — see `docs/CONTINUE_ON_DEVICE.md`.
-- `scripts/check_all.sh` + `.github/workflows/ci.yml` — one-command / CI verification (14 sims).
+- **Lane integration (composition) sims:** `tb_lane_datapath` (nco_summer→dac_sine→sign_extend→
+  freq_counter gives exact commanded counts) and `tb_lane_closed_loop` (lock_acquisition + PID +
+  the datapath acquire and hold a setpoint). Proves the reusable modules compose — de-risks the
+  block-design wiring (WP-6) and hardware bring-up.
+- `scripts/check_all.sh` + `.github/workflows/ci.yml` — one-command / CI verification (16 sims).
 
 ## Not yet done
 The spec-driven block-design generator (WP-6); the nanosphere downstream build (WP-7); a CORDIC
