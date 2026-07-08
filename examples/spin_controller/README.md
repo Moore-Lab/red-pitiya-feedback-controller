@@ -9,12 +9,19 @@ frequency exact to ~1% across 100 kHz–18 MHz, clean 1 MHz lock, verified two-b
 (Moore Lab). This directory is the *migration example* showing that a real, complex design maps
 onto the framework.
 
-## Migration status (PLAN WP-4)
-- [ ] `regspec/specs/spin_controller.yaml` — express the full 42-register map (control + capture
-      + dual freq counters + streaming + dual-axis PID/lock + multi-board sync) in the spec schema.
-- [ ] Generate and diff the register offsets against the source repo's
-      `docs/implementation_status.md` table — they must match exactly (the acceptance check).
-- [ ] Host script using `BoardSession` + the generated `registers_spin_controller` module.
+## Migration status (PLAN WP-4) — ✅ DONE
+- [x] [`regspec/specs/spin_controller.yaml`](../../regspec/specs/spin_controller.yaml) — the full
+      42-register map (control + capture + dual freq counters + streaming + dual-axis PID/lock +
+      multi-board sync), listed in map order with no explicit offsets.
+- [x] [`verify_offsets.py`](verify_offsets.py) — the acceptance check. Asserts the allocator's
+      offsets match the independently-transcribed `implementation_status.md` table. **PASSES: all
+      42 registers, 0x00..0xA4, exact.** Run: `python examples/spin_controller/verify_offsets.py`.
+- [ ] Host script using `BoardSession` + the generated `registers_spin_controller` module (thin;
+      the source repo's `board_io.py` maps directly onto the generated names).
+
+The generated `registers_spin_controller.py` is a drop-in for the source repo's hand-maintained
+`REG_*` block; `spin_controller_regs.v` is a drop-in for the hand-written `axi_lite_slave.v` —
+same map, generated from one source instead of hand-synced across three files.
 
 ## What it demonstrates once migrated
 - The `channels:` construct reproduces the hand-copied axis-A / axis-B lanes.

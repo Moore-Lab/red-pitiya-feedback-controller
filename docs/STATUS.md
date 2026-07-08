@@ -11,7 +11,7 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
 | WP-1 | Generated-regfile self-checking testbench | ready | — | — |
 | WP-2 | RTL library parameterization + tb port | ready | — | modules copied into `rtl/`; testbenches not yet ported |
 | WP-3 | Host package integration test | ready | — | `host/rp_optomech` imports; no hardware test yet |
-| WP-4 | Spin-controller migration example | ready | — | — |
+| WP-4 | Spin-controller migration example | **done** | — | `spin_controller.yaml` (42 regs) → generated; `verify_offsets.py` PASSES (0x00..0xA4 exact) |
 | WP-5 | Lock-in measurement block | blocked (interface freeze) | — | `lock_in.v` stub in place |
 | WP-6 | Spec-driven block-design generator | ready (larger) | — | — |
 | WP-7 | Nanosphere example (downstream build) | blocked (WP-5, WP-6) | — | `examples/nanosphere/` spec skeleton |

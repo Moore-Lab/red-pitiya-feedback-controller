@@ -1,0 +1,220 @@
+# spin_controller.yaml — the existing spin controller's full register map, expressed
+# in the framework schema (PLAN WP-4, the migration example).
+#
+# Registers are listed in map order with NO explicit offsets, so the allocator must
+# reproduce the real instrument's addresses (0x00..0xA4). examples/spin_controller/
+# verify_offsets.py checks the generated offsets against the independently-transcribed
+# table in the source repo's docs/implementation_status.md.
+#
+# Note: the real design is NOT cleanly channelised — axis A carries registers axis B
+# lacks (capture, raw freq counter, amp_raw, sync_control, adc_select). So this is
+# expressed as a flat register list rather than a channels: block. The asymmetry is
+# exactly what the framework's channels: construct cleans up for new designs.
+
+meta:
+  name: spin_controller
+  description: >
+    Optically-levitated microsphere spin monitor + controller. 42 registers,
+    dual-axis (A/B) PID + lock acquisition, capture, dual freq counters,
+    streaming buffer, and multi-board trigger sync. Migrated from the
+    hand-written axi_lite_slave.v.
+  base_address: 0x40000000
+  data_width: 32
+
+registers:
+  # --- header ---
+  - name: control
+    access: rw
+    reset: 0x1
+    description: "axis-A: bit0 blink_enable, bit1 dac_enable, bit2 nco_phase_reset, bit3 pid_enable, bit4 lock_enable. axis-B: bit5 pid_enable_B, bit6 lock_enable_B."
+    fields:
+      - {name: blink_enable,  bits: 0}
+      - {name: dac_enable,    bits: 1}
+      - {name: nco_phase_reset, bits: 2}
+      - {name: pid_enable,    bits: 3}
+      - {name: lock_enable,   bits: 4}
+      - {name: pid_enable_b,  bits: 5}
+      - {name: lock_enable_b, bits: 6}
+  - name: blink_half_period
+    access: rw
+    description: LED blink half-period in clk cycles (0 -> default 62.5M = 1 Hz).
+  - name: scratch
+    access: rw
+    description: Software round-trip test register.
+  - name: magic
+    access: ro
+    source: const
+    reset: 0xDEADBEEF
+    description: Bridge sanity constant.
+
+  # --- axis-A NCO / capture ---
+  - name: nco_tuning_word
+    access: rw
+    description: f_DAC = tuning_word * 125 MHz / 2^32.
+  - name: nco_amplitude
+    access: rw
+    reset: 0x3FFF
+    description: 14-bit unsigned, full-scale at 0x3FFF.
+  - name: capture_ctrl
+    access: rw
+    description: bit 0 = trigger an 8K-sample raw ADC capture.
+    fields: [{name: trigger, bits: 0}]
+  - name: capture_status
+    access: ro
+    source: input
+    description: bit 0 capture_done, bits [31:16] = depth (8192).
+    fields:
+      - {name: capture_done, bits: 0}
+      - {name: depth, bits: [16, 31]}
+
+  # --- shared freq counter + amplitude ---
+  - name: freq_gate_cycles
+    access: rw
+    description: freq counter gate window in clk cycles (0 -> default 125_000 = 1 ms).
+  - name: freq_count_raw
+    access: ro
+    source: input
+    description: Latched zero-crossing count, raw-ADC path.
+  - name: freq_threshold
+    access: rw
+    reset: 0x32
+    description: Schmitt hysteresis half-band (16-bit signed, default 50).
+  - name: freq_count_dec
+    access: ro
+    source: input
+    description: Latched zero-crossing count, CIC+FIR path.
+  - name: amp_raw
+    access: ro
+    source: input
+    description: Peak |sample| over gate, raw-ADC path.
+  - name: amp_dec
+    access: ro
+    source: input
+    description: Peak |sample| over gate, CIC+FIR path.
+
+  # --- streaming buffer ---
+  - name: buffer_enable
+    access: rw
+    description: bit 0 = stream records into the circular buffer each gate.
+    fields: [{name: enable, bits: 0}]
+  - name: buffer_write_ptr
+    access: ro
+    source: input
+    description: Next slot the FPGA will write (0..depth-1).
+  - name: buffer_sample_count
+    access: ro
+    source: input
+    description: Monotonic total writes since enable.
+  - name: buffer_depth
+    access: ro
+    source: const
+    reset: 0x400
+    description: Buffer depth in records (constant from PL param, 1024).
+
+  # --- axis-A PID + lock ---
+  - name: pid_setpoint
+    access: rw
+    description: PID setpoint in freq-counter counts (signed).
+  - name: pid_gains
+    access: rw
+    description: "[31:16] = kp, [15:0] = ki (both Q4.12 signed)."
+    fields:
+      - {name: kp, bits: [16, 31]}
+      - {name: ki, bits: [0, 15]}
+  - name: nco_shift
+    access: rw
+    description: Left-shift applied to PID output before adding to base_tw.
+  - name: pid_output
+    access: ro
+    source: input
+    description: Latest PID controller output (signed).
+  - name: pid_status
+    access: ro
+    source: input
+    description: bit 0 saturated_high, bit 1 saturated_low.
+    fields:
+      - {name: saturated_high, bits: 0}
+      - {name: saturated_low, bits: 1}
+  - name: lock_status
+    access: ro
+    source: input
+    description: bit 0 = locked (state machine output).
+    fields: [{name: locked, bits: 0}]
+  - name: lock_target_tw
+    access: rw
+    description: NCO tuning word the ramp aims at.
+  - name: lock_ramp_rate
+    access: rw
+    description: tuning-word units per gate pulse during ramp.
+  - name: lock_capture_win
+    access: rw
+    description: freq-counter error threshold (counts) to declare lock early.
+
+  # --- multi-board + channel select ---
+  - name: sync_control
+    access: rw
+    description: multi-board trigger sync (Path A). Default 0 is invisible.
+    fields:
+      - {name: sync_master_enable, bits: 0}
+      - {name: sync_slave_enable, bits: 1}
+      - {name: sync_retransmit_enable, bits: 2}
+  - name: adc_select
+    access: rw
+    description: ADC channel selector for the on-PL freq counters.
+    fields:
+      - {name: raw_adc_select, bits: 0}
+      - {name: dec_adc_select, bits: 1}
+
+  # --- axis-B (Phase 4a) ---
+  - name: nco_tuning_word_b
+    access: rw
+    description: axis-B NCO phase increment.
+  - name: nco_amplitude_b
+    access: rw
+    reset: 0x3FFF
+    description: axis-B NCO amplitude (14-bit unsigned).
+  - name: freq_count_dec_b
+    access: ro
+    source: input
+    description: axis-B decimated zero-crossing count.
+  - name: amp_dec_b
+    access: ro
+    source: input
+    description: axis-B decimated peak amplitude.
+  - name: pid_setpoint_b
+    access: rw
+    description: axis-B PID setpoint (counts).
+  - name: pid_gains_b
+    access: rw
+    description: "axis-B [31:16] = kp_B, [15:0] = ki_B (Q4.12 signed)."
+    fields:
+      - {name: kp, bits: [16, 31]}
+      - {name: ki, bits: [0, 15]}
+  - name: nco_shift_b
+    access: rw
+    description: axis-B PID-out left-shift before nco_summer.
+  - name: pid_output_b
+    access: ro
+    source: input
+    description: axis-B PID's latest control output.
+  - name: pid_status_b
+    access: ro
+    source: input
+    description: bit 0 saturated_high_B, bit 1 saturated_low_B.
+    fields:
+      - {name: saturated_high, bits: 0}
+      - {name: saturated_low, bits: 1}
+  - name: lock_status_b
+    access: ro
+    source: input
+    description: bit 0 = locked_B.
+    fields: [{name: locked, bits: 0}]
+  - name: lock_target_tw_b
+    access: rw
+    description: axis-B lock-acquisition ramp target.
+  - name: lock_ramp_rate_b
+    access: rw
+    description: axis-B lock ramp rate per gate.
+  - name: lock_capture_win_b
+    access: rw
+    description: axis-B lock capture window.
