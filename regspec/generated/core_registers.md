@@ -7,7 +7,7 @@ Minimal reusable core: a control/status header, a freq/measurement gate, a strea
 - Base address: `0x40000000`
 - Data width: 32 bits
 - Address span: `0x80` bytes (7 address bits)
-- Registers: 25
+- Registers: 26
 
 | Offset | Name | Access | Reset | Fields | Description |
 |--------|------|--------|-------|--------|-------------|
@@ -20,19 +20,20 @@ Minimal reusable core: a control/status header, a freq/measurement gate, a strea
 | `0x18` | `buffer_write_ptr` | ro (in) | `0x0` |  | Next slot the PL will write (0 .. depth-1). |
 | `0x1c` | `buffer_sample_count` | ro (in) | `0x0` |  | Monotonic total records written since enable (lets the DAQ detect overrun). |
 | `0x20` | `buffer_depth` | ro (const) | `0x400` |  | Circular-buffer depth in records (from the PL BRAM parameter). |
-| `0x24` | `nco_tuning_word_ch0` | rw | `0x0` |  | NCO phase increment. f_out = tuning_word * 125e6 / 2^32. |
-| `0x28` | `nco_amplitude_ch0` | rw | `0x3fff` |  | NCO output amplitude (14-bit unsigned, full-scale 0x3FFF). |
-| `0x2c` | `pid_setpoint_ch0` | rw | `0x0` |  | Feedback setpoint, in measurement counts (signed). |
-| `0x30` | `pid_gains_ch0` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
-| `0x34` | `pid_output_ch0` | ro (in) | `0x0` |  | Latest PID controller output (signed correction to the NCO word). |
-| `0x38` | `lock_status_ch0` | ro (in) | `0x0` |  | bit 0 = locked (lock-acquisition state-machine output). |
-| `0x3c` | `meas_count_ch0` | ro (in) | `0x0` |  | Latched measurement count for this channel (the error-signal source). |
-| `0x40` | `meas_amp_ch0` | ro (in) | `0x0` |  | Latched measurement amplitude for this channel. |
-| `0x44` | `nco_tuning_word_ch1` | rw | `0x0` |  | NCO phase increment. f_out = tuning_word * 125e6 / 2^32. |
-| `0x48` | `nco_amplitude_ch1` | rw | `0x3fff` |  | NCO output amplitude (14-bit unsigned, full-scale 0x3FFF). |
-| `0x4c` | `pid_setpoint_ch1` | rw | `0x0` |  | Feedback setpoint, in measurement counts (signed). |
-| `0x50` | `pid_gains_ch1` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
-| `0x54` | `pid_output_ch1` | ro (in) | `0x0` |  | Latest PID controller output (signed correction to the NCO word). |
-| `0x58` | `lock_status_ch1` | ro (in) | `0x0` |  | bit 0 = locked (lock-acquisition state-machine output). |
-| `0x5c` | `meas_count_ch1` | ro (in) | `0x0` |  | Latched measurement count for this channel (the error-signal source). |
-| `0x60` | `meas_amp_ch1` | ro (in) | `0x0` |  | Latched measurement amplitude for this channel. |
+| `0x24` | `sync_control` | rw | `0x0` | [0] master_enable (drive DAISY-OUT from the local gate pulse); [1] slave_enable (use synchronised DAISY-IN as the gate/sync_reset); [2] retransmit_enable (forward received pulse (3+ board daisy chain)) | Multi-board trigger sync (Path A) over the DAISY/SATA connector. |
+| `0x28` | `nco_tuning_word_ch0` | rw | `0x0` |  | NCO phase increment. f_out = tuning_word * 125e6 / 2^32. |
+| `0x2c` | `nco_amplitude_ch0` | rw | `0x3fff` |  | NCO output amplitude (14-bit unsigned, full-scale 0x3FFF). |
+| `0x30` | `pid_setpoint_ch0` | rw | `0x0` |  | Feedback setpoint, in measurement counts (signed). |
+| `0x34` | `pid_gains_ch0` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
+| `0x38` | `pid_output_ch0` | ro (in) | `0x0` |  | Latest PID controller output (signed correction to the NCO word). |
+| `0x3c` | `lock_status_ch0` | ro (in) | `0x0` |  | bit 0 = locked (lock-acquisition state-machine output). |
+| `0x40` | `meas_count_ch0` | ro (in) | `0x0` |  | Latched measurement count for this channel (the error-signal source). |
+| `0x44` | `meas_amp_ch0` | ro (in) | `0x0` |  | Latched measurement amplitude for this channel. |
+| `0x48` | `nco_tuning_word_ch1` | rw | `0x0` |  | NCO phase increment. f_out = tuning_word * 125e6 / 2^32. |
+| `0x4c` | `nco_amplitude_ch1` | rw | `0x3fff` |  | NCO output amplitude (14-bit unsigned, full-scale 0x3FFF). |
+| `0x50` | `pid_setpoint_ch1` | rw | `0x0` |  | Feedback setpoint, in measurement counts (signed). |
+| `0x54` | `pid_gains_ch1` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
+| `0x58` | `pid_output_ch1` | ro (in) | `0x0` |  | Latest PID controller output (signed correction to the NCO word). |
+| `0x5c` | `lock_status_ch1` | ro (in) | `0x0` |  | bit 0 = locked (lock-acquisition state-machine output). |
+| `0x60` | `meas_count_ch1` | ro (in) | `0x0` |  | Latched measurement count for this channel (the error-signal source). |
+| `0x64` | `meas_amp_ch1` | ro (in) | `0x0` |  | Latched measurement amplitude for this channel. |

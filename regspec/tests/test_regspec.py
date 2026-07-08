@@ -24,14 +24,15 @@ def test_core_yaml_shape():
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     spec = regspec.load(os.path.join(root, "regspec", "specs", "core.yaml"))
     assert spec.name == "core"
-    assert len(spec.registers) == 25          # 9 shared + 2 * 8 channel
+    assert len(spec.registers) == 26          # 10 shared + 2 * 8 channel
     by_name = {r.name: r for r in spec.registers}
     assert by_name["magic"].offset == 0x04
     assert by_name["magic"].is_const
     assert by_name["buffer_write_ptr"].is_input
+    assert by_name["sync_control"].offset == 0x24   # last shared register
     # channels laid out block-by-block after the shared header
-    assert by_name["nco_tuning_word_ch0"].offset == 0x24
-    assert by_name["nco_tuning_word_ch1"].offset == 0x44
+    assert by_name["nco_tuning_word_ch0"].offset == 0x28
+    assert by_name["nco_tuning_word_ch1"].offset == 0x48
 
 
 def test_auto_allocation_is_sequential(tmp_path):

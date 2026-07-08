@@ -1,4 +1,6 @@
-# red-pitaya-optomech
+# red-pitiya-feedback-controller
+
+> GitHub: **Moore-Lab/red-pitiya-feedback-controller** · Python package: `rp_optomech`
 
 A reusable **starting-point framework** for building real-time feedback controllers on a Red
 Pitaya (Xilinx Zynq-7010) for optomechanics experiments — levitated microspheres, nanospheres,
@@ -35,6 +37,7 @@ stack re-targets to a different experiment.
 | See the scope, success criteria, and gates | [`docs/SCOPE.md`](docs/SCOPE.md) |
 | See the frozen contracts (schema, measurement interface, host API) | [`docs/INTERFACES.md`](docs/INTERFACES.md) |
 | Stand up a new experiment | [`docs/PORTING.md`](docs/PORTING.md) |
+| **Continue development on the Red-Pitaya-connected machine** (Vivado + board) | [`docs/CONTINUE_ON_DEVICE.md`](docs/CONTINUE_ON_DEVICE.md) |
 | See the plan and current status | [`docs/PLAN.md`](docs/PLAN.md) · [`docs/STATUS.md`](docs/STATUS.md) |
 
 ## The register system (the core piece, working today)
@@ -55,12 +58,13 @@ auto-allocated offsets.
 
 ## Layout
 ```
-regspec/   register spec + code generators (spec -> Verilog + Python + docs)
-rtl/       reusable Verilog library: io/ dsp/ feedback/ measurement/ infra/
-host/      rp_optomech: spec-driven BoardSession, StreamReader, FeedbackController, daemon
-examples/  spin_controller/ (reference) · nanosphere/ (skeleton)
-docs/      SCOPE · ARCHITECTURE · INTERFACES · PLAN · STATUS · DECISIONS · PORTING
-roles/     orchestrator + worker execution-protocol prompts
+regspec/     register spec + code generators (spec -> Verilog + Python + docs)
+rtl/         reusable Verilog library: io/ dsp/ feedback/ measurement/ infra/
+host/        rp_optomech: spec-driven BoardSession, StreamReader, FeedbackController, daemon
+constraints/ red_pitaya.xdc — STEMlab 125-14 board pinout incl. the DAISY (SATA) sync pair
+examples/    spin_controller/ (reference) · nanosphere/ (skeleton)
+docs/        SCOPE · ARCHITECTURE · INTERFACES · PLAN · STATUS · DECISIONS · PORTING · CONTINUE_ON_DEVICE
+roles/       orchestrator + worker execution-protocol prompts
 ```
 
 ## Requirements

@@ -1,4 +1,6 @@
-# CLAUDE.md — red-pitaya-optomech
+# CLAUDE.md — red-pitiya-feedback-controller
+
+**Repo:** Moore-Lab/red-pitiya-feedback-controller (Python package `rp_optomech`).
 
 **What / why.** A reusable starting-point framework for Red Pitaya (Zynq-7010) real-time
 feedback experiments in optomechanics: multi-channel acquisition → per-channel DSP →
@@ -6,6 +8,10 @@ measurement → PID/feedback → multi-channel actuation, all exposed on a **run
 AXI register bank** and driven by a multi-channel/multi-board host. Extracted from the proven
 `red-pitiya-spin-controller`; a new experiment (e.g. nanosphere COM) stands up by writing a
 register spec + a measurement block + a top, **without editing the framework core**.
+
+**Continuing on the machine wired to the Red Pitaya (Vivado + board):** start from
+[`docs/CONTINUE_ON_DEVICE.md`](docs/CONTINUE_ON_DEVICE.md). Everything here is verified in
+simulation/tests only — no hardware has been touched yet.
 
 ## Read these to orient (in order)
 1. [`README.md`](README.md) — the hub.

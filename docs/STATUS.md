@@ -34,6 +34,10 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
 - **WP-3** host integration tests (`pytest` 9/9, fake daemon).
 - **WP-4** spin-controller migration (42 regs reproduced exactly, `verify_offsets.py` PASS).
 - **WP-5 (core)** I/Q lock-in demodulator, `tb_lock_in` PASS (~130,000x out-of-band rejection).
+- **Multi-board SATA/DAISY sync — spec-complete:** `constraints/red_pitaya.xdc` (DAISY pins),
+  `sync_control` register in `core.yaml`, and `sync_reset`/`sync_slave_mode` hooks on both
+  measurement blocks (`tb_lock_in` slave-mode case PASS). Block-design wiring is the remaining
+  step (WP-6) — see `docs/CONTINUE_ON_DEVICE.md`.
 - `scripts/check_all.sh` + `.github/workflows/ci.yml` — one-command / CI verification (14 sims).
 
 ## Not yet done

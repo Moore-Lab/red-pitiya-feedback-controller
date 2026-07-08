@@ -73,6 +73,17 @@ registers:
     reset: 0x400               # 1024 records
     description: Circular-buffer depth in records (from the PL BRAM parameter).
 
+  # --- multi-board trigger sync over the DAISY (SATA) connector ---
+  # Drives sync_io.v. Default 0 -> single-board (functionally invisible). See
+  # constraints/red_pitaya.xdc (daisy_* pins) and docs/CONTINUE_ON_DEVICE.md.
+  - name: sync_control
+    access: rw
+    description: Multi-board trigger sync (Path A) over the DAISY/SATA connector.
+    fields:
+      - {name: master_enable,     bits: 0, description: drive DAISY-OUT from the local gate pulse}
+      - {name: slave_enable,      bits: 1, description: use synchronised DAISY-IN as the gate/sync_reset}
+      - {name: retransmit_enable, bits: 2, description: forward received pulse (3+ board daisy chain)}
+
 # --- per-channel feedback lane (replicated `count` times) ---
 # Channel i gets: nco_tuning_word_ch{i}, nco_amplitude_ch{i}, ... etc.
 channels:

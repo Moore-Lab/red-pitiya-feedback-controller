@@ -17,6 +17,7 @@ module tb_lock_in;
     reg clk = 0, rstn = 0;
     reg signed [15:0] adc;
     reg [31:0] ref_tw;
+    reg sync_reset = 0, sync_slave_mode = 0;
     wire signed [31:0] error_count;
     wire [15:0] amplitude;
     wire gate_done;
@@ -24,8 +25,13 @@ module tb_lock_in;
 
     lock_in dut(.clk(clk), .rst_n(rstn), .adc_sample(adc),
                 .gate_cycles(GATE), .threshold(16'd0), .ref_tuning_word(ref_tw),
+                .sync_reset(sync_reset), .sync_slave_mode(sync_slave_mode),
                 .error_count(error_count), .amplitude(amplitude), .gate_done(gate_done),
                 .i_out(i_out), .q_out(q_out));
+
+    // record whether a gate_done fired while in slave mode
+    reg slave_gate_seen = 0;
+    always @(posedge clk) if (sync_slave_mode && gate_done) slave_gate_seen <= 1'b1;
 
     always #4 clk = ~clk;
 
@@ -88,6 +94,24 @@ module tb_lock_in;
             $display("FAIL: in-band magnitude implausibly small (%0d)", mag_matched);
             errors = errors + 1;
         end
+
+        // --- multi-board slave mode: the gate is driven by sync_reset ---
+        ref_tw = TW_SIG; drive_tone = 1; sync_slave_mode = 1; sync_reset = 0;
+        slave_gate_seen = 0;
+        repeat (600) @(posedge clk);        // accumulate in-band samples, no local wrap
+        @(negedge clk); sync_reset = 1;      // one-cycle synchronised pulse
+        @(posedge clk);                      // DUT latches here
+        @(negedge clk); sync_reset = 0;
+        repeat (3) @(posedge clk);
+        if (!slave_gate_seen) begin
+            $display("FAIL: slave mode — sync_reset did not produce a gate_done");
+            errors = errors + 1;
+        end
+        if (error_count < 1000) begin
+            $display("FAIL: slave mode — latched magnitude too small (%0d)", error_count);
+            errors = errors + 1;
+        end else
+            $display("slave-mode gated magnitude = %0d", error_count);
 
         if (errors == 0) $display("\nPASS: lock_in tests");
         else             $display("\nFAIL: lock_in %0d error(s)", errors);

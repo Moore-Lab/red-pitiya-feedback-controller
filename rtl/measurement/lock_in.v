@@ -30,6 +30,10 @@ module lock_in #(
 
     input  wire        [31:0]           ref_tuning_word, // reference NCO phase increment
 
+    // multi-board trigger sync (from sync_io.v / DAISY-SATA). Both 0 = standalone.
+    input  wire                         sync_reset,      // 1-cycle: latch + restart the gate now
+    input  wire                         sync_slave_mode, // 1: gate is driven by sync_reset, not the local timer
+
     output reg  signed [31:0]           error_count,     // magnitude estimate (the error signal)
     output reg         [15:0]           amplitude,        // same magnitude, clamped to 16 bits
     output reg                          gate_done,
@@ -64,6 +68,11 @@ module lock_in #(
     wire        [63:0] mn = (ai > aq) ? aq : ai;
     wire        [63:0] mag = mx + (mn >> 2);          // alpha-max-beta-min, beta=1/4
 
+    // In slave mode the master's synchronised pulse (sync_reset) is the authoritative
+    // gate boundary; the local timer free-runs only as a watchdog and never latches.
+    wire local_wrap = (gate_ctr >= gate_len - 1);
+    wire latch_now  = sync_slave_mode ? sync_reset : local_wrap;
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             phase <= 32'd0; gate_ctr <= 32'd0;
@@ -72,8 +81,14 @@ module lock_in #(
             i_out <= 32'sd0; q_out <= 32'sd0;
         end else begin
             phase <= phase + ref_tuning_word;
-            if (gate_ctr >= gate_len - 1) begin
-                gate_ctr    <= 32'd0;
+
+            // gate counter: reset on the authoritative boundary for the active mode
+            if (sync_slave_mode)
+                gate_ctr <= sync_reset ? 32'd0 : gate_ctr + 1'b1;   // watchdog only
+            else
+                gate_ctr <= local_wrap ? 32'd0 : gate_ctr + 1'b1;
+
+            if (latch_now) begin
                 gate_done   <= 1'b1;
                 i_out       <= i_scaled[31:0];
                 q_out       <= q_scaled[31:0];
@@ -82,7 +97,6 @@ module lock_in #(
                 acc_i       <= prod_i;    // restart with the current sample
                 acc_q       <= prod_q;
             end else begin
-                gate_ctr  <= gate_ctr + 1'b1;
                 gate_done <= 1'b0;
                 acc_i     <= acc_i + prod_i;
                 acc_q     <= acc_q + prod_q;

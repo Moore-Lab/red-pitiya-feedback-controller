@@ -110,8 +110,10 @@ module tb_regfile;
         repeat (2) @(posedge clk);
 
         // --- reset values ---
+        // NB: offsets track core.yaml. Shared header is 10 regs (0x00..0x24);
+        //     channel-0 lane starts at 0x28, channel-1 at 0x48.
         axi_read(7'h00, v); check("control reset",       v, 32'h0000_0001);
-        axi_read(7'h28, v); check("nco_amp_ch0 reset",   v, 32'h0000_3fff);
+        axi_read(7'h2c, v); check("nco_amp_ch0 reset",   v, 32'h0000_3fff);
         axi_read(7'h0c, v); check("gate_cycles reset",   v, 32'h0013_12d0);
 
         // --- const registers ---
@@ -121,8 +123,8 @@ module tb_regfile;
         // --- rw write/read across the map ---
         axi_write(7'h08, 32'h1234_5678, 4'hf);
         axi_read (7'h08, v); check("scratch roundtrip",  v, 32'h1234_5678);
-        axi_write(7'h44, 32'hcafe_babe, 4'hf);   // nco_tuning_word_ch1
-        axi_read (7'h44, v); check("nco_tw_ch1 rw",      v, 32'hcafe_babe);
+        axi_write(7'h48, 32'hcafe_babe, 4'hf);   // nco_tuning_word_ch1
+        axi_read (7'h48, v); check("nco_tw_ch1 rw",      v, 32'hcafe_babe);
 
         // --- byte-strobed partial write ---
         axi_write(7'h08, 32'h0000_0000, 4'hf);
@@ -132,7 +134,7 @@ module tb_regfile;
         // --- ro/input read-back ---
         in_meas_ch0 = 32'h0bad_f00d;
         @(posedge clk);
-        axi_read(7'h3c, v); check("meas_count_ch0 input", v, 32'h0bad_f00d);
+        axi_read(7'h40, v); check("meas_count_ch0 input", v, 32'h0bad_f00d);
         in_bufwptr = 32'h0000_0201;
         @(posedge clk);
         axi_read(7'h18, v); check("buffer_write_ptr input", v, 32'h0000_0201);
