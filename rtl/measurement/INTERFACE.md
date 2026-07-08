@@ -46,8 +46,8 @@ module <measurement> #(
 
 | Block | Error signal | Use |
 |-------|--------------|-----|
-| `freq_counter.v` (present) | Schmitt zero-crossing count over the gate → rotation frequency | spin controller |
-| `lock_in.v` (stub) | I/Q mix ADC × channel NCO, low-pass → displacement amplitude/phase | nanosphere COM (to build) |
+| `freq_counter.v` (present, tested) | Schmitt zero-crossing count over the gate → rotation frequency | spin controller |
+| `lock_in.v` (present, tested) | I/Q mix ADC × internal reference NCO, gate-accumulate → magnitude (block-specific config: `ref_tuning_word`) | nanosphere COM |
 
 A compliant block is a drop-in: instantiate it in the lane in place of the reference, wire its
 block-specific config to spec registers, and the rest of the design is unchanged.

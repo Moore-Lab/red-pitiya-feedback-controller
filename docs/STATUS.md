@@ -13,7 +13,7 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
 | WP-2 | RTL library parameterization + tb port | **done** | — | 12 module tbs pass via `scripts/run_sims.sh` (13/13 with tb_regfile). Untested by design: pure pin-driver bus modules `adc_interface`/`dac_interface`. `streaming_buffer` words_per_record param = follow-up. |
 | WP-3 | Host package integration test | **done** | — | `pytest host/rp_optomech/tests/` → 9 passed (fake daemon; BoardSession/StreamReader/FeedbackController) |
 | WP-4 | Spin-controller migration example | **done** | — | `spin_controller.yaml` (42 regs) → generated; `verify_offsets.py` PASSES (0x00..0xA4 exact) |
-| WP-5 | Lock-in measurement block | blocked (interface freeze) | — | `lock_in.v` stub in place |
+| WP-5 | Lock-in measurement block | **done (core)** | — | I/Q demod + gate accumulate + magnitude; `tb_lock_in` PASS (in-band 2.1M vs off-band 16 vs DC 0). CORDIC magnitude = refinement. |
 | WP-6 | Spec-driven block-design generator | ready (larger) | — | — |
 | WP-7 | Nanosphere example (downstream build) | blocked (WP-5, WP-6) | — | `examples/nanosphere/` spec skeleton |
 
@@ -33,9 +33,10 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
 - **WP-2** RTL library testbenches (12 modules, `run_sims.sh` 13/13).
 - **WP-3** host integration tests (`pytest` 9/9, fake daemon).
 - **WP-4** spin-controller migration (42 regs reproduced exactly, `verify_offsets.py` PASS).
-- `scripts/check_all.sh` + `.github/workflows/ci.yml` — one-command / CI verification.
+- **WP-5 (core)** I/Q lock-in demodulator, `tb_lock_in` PASS (~130,000x out-of-band rejection).
+- `scripts/check_all.sh` + `.github/workflows/ci.yml` — one-command / CI verification (14 sims).
 
 ## Not yet done
-The lock-in measurement block completion (WP-5); the spec-driven block-design generator (WP-6);
-the nanosphere downstream build (WP-7); `streaming_buffer` record-width parameterization; and any
-hardware bring-up (needs a board + Vivado). See PLAN for the ordered path.
+The spec-driven block-design generator (WP-6); the nanosphere downstream build (WP-7); a CORDIC
+sqrt magnitude + I/Q low-pass for the lock-in (refinement); `streaming_buffer` record-width
+parameterization; and any hardware bring-up (needs a board + Vivado). See PLAN for the path.

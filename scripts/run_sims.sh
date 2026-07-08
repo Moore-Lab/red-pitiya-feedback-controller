@@ -57,6 +57,7 @@ run tb_comp_fir         ""      "$ROOT/build"  rtl/tb/tb_comp_fir.v         rtl/
 run tb_nco_summer       ""      "$ROOT"       rtl/tb/tb_nco_summer.v       rtl/dsp/nco_summer.v
 run tb_adc_mux          ""      "$ROOT"       rtl/tb/tb_adc_mux.v          rtl/io/adc_mux.v
 run tb_sign_extend      ""      "$ROOT"       rtl/tb/tb_sign_extend_14to16.v rtl/io/sign_extend_14to16.v
+run tb_lock_in          ""      "$ROOT/build"  rtl/tb/tb_lock_in.v          rtl/measurement/lock_in.v
 
 echo ""
 echo "== $pass passed, $fail failed =="

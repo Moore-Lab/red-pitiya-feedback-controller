@@ -24,6 +24,7 @@ module. Simulate first, always.
 | `pid_controller` | feedback | fixed-point P+I, anti-windup, 3-stage pipeline, Q4.12 | reuse as-is (per channel) |
 | `lock_acquisition` | feedback | IDLE→RAMPING→LOCKED state machine (ramp then hand to PID) | reuse as-is (per channel) |
 | `freq_counter` | measurement | **reference measurement**: Schmitt zero-crossing + amp peak | one *implementation* of the measurement seam |
+| `lock_in` | measurement | I/Q demod vs internal reference NCO + gate accumulate + magnitude | second measurement impl (COM/displacement); tested, CORDIC magnitude = refinement |
 | `streaming_buffer` | infra | 4-word circular record per gate, sync-flag aware | generalize `words_per_record` for other layouts |
 | `sync_io` | infra | multi-board DAISY trigger sync (2-FF, master/slave/retransmit) | reuse as-is |
 | `blinker` | infra | heartbeat LED (register-driven half-period) | reuse as-is |
@@ -50,7 +51,7 @@ are documented so they don't bite again:
 
 ## What's not here yet
 
-- `lock_in` — the quadrature-demod measurement block for displacement/COM experiments. The
-  interface it must satisfy is in [`measurement/INTERFACE.md`](measurement/INTERFACE.md); a stub
-  is provided. This is the first downstream build (e.g. nanosphere).
 - A spec-driven **block-design generator** (today each example hand-writes `create_block_design.tcl`).
+- `lock_in` refinements: a CORDIC `sqrt(I^2+Q^2)` magnitude (currently alpha-max-beta-min) and an
+  I/Q low-pass ahead of the gate accumulator for narrowband work.
+- `streaming_buffer` record-width (`words_per_record`) parameterization for non-default layouts.
