@@ -62,6 +62,20 @@ is a known-good 542-line IPI script for the exact same modules — generalize it
 blank. Wire the generated register ports by name: `<reg>_o` outputs drive the PL, `<reg>_i`
 inputs return PL status (see `docs/INTERFACES.md` §2).
 
+**The per-channel lane wiring is already verified in simulation** — treat these two testbenches
+as the *executable spec* for what the generator must emit (you are transcribing a proven
+composition, not designing one):
+- `rtl/tb/tb_lane_datapath.v` — the forward path `nco_summer → dac_sine → sign_extend_14to16 →
+  freq_counter` (swap in `lock_in` for a displacement design), with exact commanded-vs-measured.
+- `rtl/tb/tb_lane_closed_loop.v` — the full loop: `lock_acquisition` + `pid_controller` feeding
+  `nco_summer`, PID gated on `locked` (`pid_en = pid_enable & locked`, the real design's rule).
+  Every module→module and register→port connection you need is spelled out there.
+
+A pragmatic split that keeps most of the generator verifiable here (no Vivado): emit a plain
+**structural Verilog top** (`<name>_top.v`) that instantiates the generated `<name>_regs` + N
+lanes + `streaming_buffer` + `sync_io` (iverilog can elaborate/smoke-test it), and a **thin**
+Vivado Tcl that only adds the Zynq PS7 + AXI interconnect + BRAM controllers around that top.
+
 *Acceptance*: generated Tcl builds a bitstream for `core` (or spin) with WNS ≥ 0. Build with
 `launch_runs -jobs 1` and gate on WNS (both are carried-forward gotchas, `rtl/README.md`).
 

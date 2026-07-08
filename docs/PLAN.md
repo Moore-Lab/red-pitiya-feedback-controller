@@ -43,11 +43,14 @@ WP-0.
 alpha-max-beta-min magnitude. `rtl/tb/tb_lock_in.v` PASS (in-band 2.1M vs off-band 16 vs DC 0).
 *Refinement left:* CORDIC `sqrt(I²+Q²)` magnitude + an I/Q low-pass ahead of the accumulator.
 
-### WP-6 — Spec-driven block-design generator  ·  ready (larger)
-Generate `create_block_design.tcl` from a spec + a lane description (which measurement block,
-how many channels), instantiating the generated regfile + the lane modules + BRAM controllers.
-**Owns** `scripts/gen_block_design.py`.
-*Acceptance:* generated Tcl builds a bitstream for `core`/spin in Vivado with WNS ≥ 0.
+### WP-6 — Spec-driven block-design generator  ·  ready (larger; needs Vivado to verify)
+Generate a structural top + `create_block_design.tcl` from a spec + a lane description (which
+measurement block, how many channels), instantiating the generated regfile + the lane modules +
+BRAM controllers. **Owns** `scripts/gen_block_design.py`. The per-channel lane wiring is already
+verified — `rtl/tb/tb_lane_datapath.v` + `rtl/tb/tb_lane_closed_loop.v` are the executable spec
+for what to emit (see `docs/CONTINUE_ON_DEVICE.md`).
+*Acceptance:* generated top elaborates in iverilog; generated Tcl builds a bitstream for
+`core`/spin in Vivado with WNS ≥ 0.
 
 ### WP-7 — Nanosphere example (first real downstream build)  ·  blocked
 `examples/nanosphere/`: a spec (3 channels x/y/z, lock-in measurement), a top, host scripts.
