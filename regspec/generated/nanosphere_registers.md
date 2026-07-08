@@ -7,7 +7,7 @@
 - Base address: `0x40000000`
 - Data width: 32 bits
 - Address span: `0x100` bytes (8 address bits)
-- Registers: 33
+- Registers: 36
 
 | Offset | Name | Access | Reset | Fields | Description |
 |--------|------|--------|-------|--------|-------------|
@@ -26,21 +26,24 @@
 | `0x30` | `pid_gains_0` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
 | `0x34` | `pid_output_0` | ro (in) | `0x0` |  | Latest PID feedback output (signed). |
 | `0x38` | `lock_status_0` | ro (in) | `0x0` |  | bit 0 = engaged/stable. |
-| `0x3c` | `meas_i_0` | ro (in) | `0x0` |  | Latched in-phase (I) lock-in output for this axis. |
-| `0x40` | `meas_q_0` | ro (in) | `0x0` |  | Latched quadrature (Q) lock-in output for this axis. |
-| `0x44` | `lockin_ref_tw_1` | rw | `0x0` |  | Reference-oscillator phase increment (mechanical mode frequency). |
-| `0x48` | `drive_amplitude_1` | rw | `0x0` |  | Feedback drive amplitude scale (14-bit unsigned). |
-| `0x4c` | `pid_setpoint_1` | rw | `0x0` |  | Target for the demodulated error signal (signed). 0 = cool to zero. |
-| `0x50` | `pid_gains_1` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
-| `0x54` | `pid_output_1` | ro (in) | `0x0` |  | Latest PID feedback output (signed). |
-| `0x58` | `lock_status_1` | ro (in) | `0x0` |  | bit 0 = engaged/stable. |
-| `0x5c` | `meas_i_1` | ro (in) | `0x0` |  | Latched in-phase (I) lock-in output for this axis. |
-| `0x60` | `meas_q_1` | ro (in) | `0x0` |  | Latched quadrature (Q) lock-in output for this axis. |
-| `0x64` | `lockin_ref_tw_2` | rw | `0x0` |  | Reference-oscillator phase increment (mechanical mode frequency). |
-| `0x68` | `drive_amplitude_2` | rw | `0x0` |  | Feedback drive amplitude scale (14-bit unsigned). |
-| `0x6c` | `pid_setpoint_2` | rw | `0x0` |  | Target for the demodulated error signal (signed). 0 = cool to zero. |
-| `0x70` | `pid_gains_2` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
-| `0x74` | `pid_output_2` | ro (in) | `0x0` |  | Latest PID feedback output (signed). |
-| `0x78` | `lock_status_2` | ro (in) | `0x0` |  | bit 0 = engaged/stable. |
-| `0x7c` | `meas_i_2` | ro (in) | `0x0` |  | Latched in-phase (I) lock-in output for this axis. |
-| `0x80` | `meas_q_2` | ro (in) | `0x0` |  | Latched quadrature (Q) lock-in output for this axis. |
+| `0x3c` | `meas_mag_0` | ro (in) | `0x0` |  | Demodulated magnitude (lock_in error_count) for this axis — the PID error source. |
+| `0x40` | `meas_i_0` | ro (in) | `0x0` |  | Latched in-phase (I) lock-in output for this axis. |
+| `0x44` | `meas_q_0` | ro (in) | `0x0` |  | Latched quadrature (Q) lock-in output for this axis. |
+| `0x48` | `lockin_ref_tw_1` | rw | `0x0` |  | Reference-oscillator phase increment (mechanical mode frequency). |
+| `0x4c` | `drive_amplitude_1` | rw | `0x0` |  | Feedback drive amplitude scale (14-bit unsigned). |
+| `0x50` | `pid_setpoint_1` | rw | `0x0` |  | Target for the demodulated error signal (signed). 0 = cool to zero. |
+| `0x54` | `pid_gains_1` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
+| `0x58` | `pid_output_1` | ro (in) | `0x0` |  | Latest PID feedback output (signed). |
+| `0x5c` | `lock_status_1` | ro (in) | `0x0` |  | bit 0 = engaged/stable. |
+| `0x60` | `meas_mag_1` | ro (in) | `0x0` |  | Demodulated magnitude (lock_in error_count) for this axis — the PID error source. |
+| `0x64` | `meas_i_1` | ro (in) | `0x0` |  | Latched in-phase (I) lock-in output for this axis. |
+| `0x68` | `meas_q_1` | ro (in) | `0x0` |  | Latched quadrature (Q) lock-in output for this axis. |
+| `0x6c` | `lockin_ref_tw_2` | rw | `0x0` |  | Reference-oscillator phase increment (mechanical mode frequency). |
+| `0x70` | `drive_amplitude_2` | rw | `0x0` |  | Feedback drive amplitude scale (14-bit unsigned). |
+| `0x74` | `pid_setpoint_2` | rw | `0x0` |  | Target for the demodulated error signal (signed). 0 = cool to zero. |
+| `0x78` | `pid_gains_2` | rw | `0x0` | [31:16] kp; [15:0] ki | [31:16] = kp, [15:0] = ki (Q4.12 signed). |
+| `0x7c` | `pid_output_2` | ro (in) | `0x0` |  | Latest PID feedback output (signed). |
+| `0x80` | `lock_status_2` | ro (in) | `0x0` |  | bit 0 = engaged/stable. |
+| `0x84` | `meas_mag_2` | ro (in) | `0x0` |  | Demodulated magnitude (lock_in error_count) for this axis — the PID error source. |
+| `0x88` | `meas_i_2` | ro (in) | `0x0` |  | Latched in-phase (I) lock-in output for this axis. |
+| `0x8c` | `meas_q_2` | ro (in) | `0x0` |  | Latched quadrature (Q) lock-in output for this axis. |

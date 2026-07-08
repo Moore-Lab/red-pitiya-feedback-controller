@@ -89,6 +89,10 @@ channels:
       access: ro
       source: input
       description: bit 0 = engaged/stable.
+    - name: meas_mag
+      access: ro
+      source: input
+      description: Demodulated magnitude (lock_in error_count) for this axis — the PID error source.
     - name: meas_i
       access: ro
       source: input

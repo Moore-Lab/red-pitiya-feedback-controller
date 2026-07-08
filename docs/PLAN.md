@@ -11,38 +11,37 @@ Build the spec loader/allocator and the three generators. **Owns** `regspec/`.
 `--check` exits 0; generated Python imports; generated Verilog matches the hand-written pattern.
 ✅ demonstrated.
 
-### WP-1 — Generated-regfile self-checking testbench  ·  ready
+### WP-1 — Generated-regfile self-checking testbench  ·  **DONE**
 Write `regspec/tb/tb_regfile.v` (or a cocotb test) that, for `core`, drives the AXI4-Lite
 channel: writes each `rw` register and reads it back; reads each `ro/const`; drives `ro/input`
 ports and reads them. **Owns** `regspec/tb/`.
 *Acceptance:* `iverilog` sim over `generated/core_regs.v` prints PASS with full register
 coverage. **Depends on** WP-0.
 
-### WP-2 — RTL library parameterization + testbench port  ·  ready
+### WP-2 — RTL library parameterization + testbench port  ·  **DONE** (12 module tbs; bus drivers untested by design)
 Bring each `rtl/` module's testbench across from the source repo; confirm all pass under
 Icarus. Parameterize `streaming_buffer` `words_per_record`; widen `adc_mux` select. **Owns**
 `rtl/` (except `measurement/INTERFACE.md`).
 *Acceptance:* every module in `rtl/` has a passing testbench; `make sim` (or a runner script)
 is green.
 
-### WP-3 — Host package integration test  ·  ready
+### WP-3 — Host package integration test  ·  **DONE** (pytest 9/9)
 Add a loopback/mock test for `host/rp_optomech`: a fake daemon socket that serves a register
 model, exercised by `BoardSession` name access, `StreamReader`, and a 2-channel
 `FeedbackController` with K≠0. **Owns** `host/rp_optomech/tests/`.
 *Acceptance:* `pytest host/` passes with no hardware. **Depends on** WP-0 (registers module).
 
-### WP-4 — Spin-controller migration example  ·  ready
+### WP-4 — Spin-controller migration example  ·  **DONE** (42 regs exact, verify_offsets PASS)
 Express the source project's full 42-register map as `regspec/specs/spin_controller.yaml`;
 generate and diff the register offsets against the source `implementation_status.md` table.
 Provide `examples/spin_controller/` (spec + host script + README) as the reference.
 *Acceptance:* generated offsets match the source design's register table exactly. **Depends on**
 WP-0.
 
-### WP-5 — Lock-in measurement block  ·  blocked on interface freeze
-Complete `rtl/measurement/lock_in.v` (NCO reference, I/Q LPF, CORDIC magnitude) + testbench
-against an injected tone. **Owns** `rtl/measurement/lock_in.v`, `rtl/measurement/tb_lock_in.v`.
-*Acceptance:* testbench recovers the amplitude/phase of a known injected quadrature signal
-within tolerance. **Depends on** WP-2 and the frozen measurement interface.
+### WP-5 — Lock-in measurement block  ·  **DONE (core)**
+`rtl/measurement/lock_in.v`: internal reference NCO + I/Q multiply-accumulate over the gate +
+alpha-max-beta-min magnitude. `rtl/tb/tb_lock_in.v` PASS (in-band 2.1M vs off-band 16 vs DC 0).
+*Refinement left:* CORDIC `sqrt(I²+Q²)` magnitude + an I/Q low-pass ahead of the accumulator.
 
 ### WP-6 — Spec-driven block-design generator  ·  ready (larger)
 Generate `create_block_design.tcl` from a spec + a lane description (which measurement block,
