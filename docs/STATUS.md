@@ -8,8 +8,8 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
 | WP | Title | State | Owner | Evidence |
 |----|-------|-------|-------|----------|
 | WP-0 | Register-spec codegen | **done (scaffold)** | — | `regspec/` runs; `core.yaml` → V/Py/MD; `--check` green; generated Python imports; Verilog reviewed |
-| WP-1 | Generated-regfile self-checking testbench | ready | — | — |
-| WP-2 | RTL library parameterization + tb port | ready | — | modules copied into `rtl/`; testbenches not yet ported |
+| WP-1 | Generated-regfile self-checking testbench | **done** | — | `regspec/tb/tb_regfile.v` PASSES in Icarus (reset/const/rw/wstrb/input/ro-protect) |
+| WP-2 | RTL library parameterization + tb port | in-progress | — | 9 module tbs ported + passing via `scripts/run_sims.sh` (10/10 green). Remaining: tbs for thin adapters (adc/dac_interface, adc_mux, sign_extend, nco_summer); `streaming_buffer` words_per_record param |
 | WP-3 | Host package integration test | **done** | — | `pytest host/rp_optomech/tests/` → 9 passed (fake daemon; BoardSession/StreamReader/FeedbackController) |
 | WP-4 | Spin-controller migration example | **done** | — | `spin_controller.yaml` (42 regs) → generated; `verify_offsets.py` PASSES (0x00..0xA4 exact) |
 | WP-5 | Lock-in measurement block | blocked (interface freeze) | — | `lock_in.v` stub in place |

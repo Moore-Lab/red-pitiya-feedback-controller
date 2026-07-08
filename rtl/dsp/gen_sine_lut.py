@@ -1,7 +1,7 @@
-"""Generate fpga/src/sine_lut.mem — a precomputed 4096 × 14-bit sine LUT.
+"""Generate sine_lut.mem — a precomputed 4096 × 14-bit sine LUT.
 
-Run from the repo root:
-    python fpga/scripts/gen_sine_lut.py
+Writes next to dac_sine.v (rtl/dsp/). Run:
+    python rtl/dsp/gen_sine_lut.py
 """
 
 import math
@@ -12,8 +12,8 @@ SAMPLE_WIDTH = 14
 FULL_SCALE = (1 << (SAMPLE_WIDTH - 1)) - 1   # 8191
 
 out_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "src", "sine_lut.mem"
+    os.path.dirname(os.path.abspath(__file__)),
+    "sine_lut.mem"
 )
 
 with open(out_path, "w") as f:

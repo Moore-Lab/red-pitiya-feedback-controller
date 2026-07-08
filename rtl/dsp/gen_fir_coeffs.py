@@ -98,10 +98,10 @@ for f_dec in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4]:
     print("  f_dec={:.2f}/Nyq  CIC={:+.2f}dB  FIR={:+.2f}dB  total={:+.2f}dB".format(
         f_dec * 2, cic_db, fir_db, total_db))
 
-# Write .mem file
+# Write .mem file (next to comp_fir.v in rtl/dsp/)
 out_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "src", "fir_coeffs.mem",
+    os.path.dirname(os.path.abspath(__file__)),
+    "fir_coeffs.mem",
 )
 
 with open(out_path, "w") as f:
