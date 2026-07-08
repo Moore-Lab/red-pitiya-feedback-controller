@@ -1,0 +1,99 @@
+# nanosphere.yaml — example spec for a 3-axis nanosphere COM feedback controller.
+#
+# Demonstrates the framework's target use case: measure centre-of-mass motion on
+# x/y/z by lock-in demodulation, apply feedback (cooling / parametric) per axis.
+# Same shared header + streaming as the spin controller; the per-channel lane
+# uses a lock-in measurement block (see rtl/measurement/lock_in.v) instead of a
+# frequency counter, so each channel carries a reference-oscillator register.
+#
+# Generate: python regspec/gen_all.py regspec/specs/nanosphere.yaml
+
+meta:
+  name: nanosphere
+  description: >
+    3-axis (x/y/z) centre-of-mass feedback controller. Per-axis lock-in
+    demodulation against a reference oscillator yields I/Q; PID drives a
+    feedback force via the DAC. Reuses the core streaming + control header.
+  base_address: 0x40000000
+  data_width: 32
+
+registers:
+  - name: control
+    access: rw
+    reset: 0x1
+    description: Global control bits.
+    fields:
+      - {name: sys_enable,  bits: 0}
+      - {name: dac_enable,  bits: 1}
+      - {name: phase_reset, bits: 2, description: reset all reference NCO phases}
+  - name: magic
+    access: ro
+    source: const
+    reset: 0xDEADBEEF
+    description: Bridge sanity constant.
+  - name: scratch
+    access: rw
+    description: Software round-trip test register.
+  - name: gate_cycles
+    access: rw
+    reset: 0x1312D0
+    description: Lock-in integration window in clk cycles (10 ms at 125 MHz).
+  - name: threshold
+    access: rw
+    reset: 0x32
+    description: Amplitude/sensitivity discriminator (codes).
+  - name: buffer_enable
+    access: rw
+    description: bit 0 -> stream one record per gate.
+    fields: [{name: enable, bits: 0}]
+  - name: buffer_write_ptr
+    access: ro
+    source: input
+    description: Next circular-buffer slot the PL will write.
+  - name: buffer_sample_count
+    access: ro
+    source: input
+    description: Monotonic total records written since enable.
+  - name: buffer_depth
+    access: ro
+    source: const
+    reset: 0x400
+    description: Circular-buffer depth in records.
+
+# x = channel 0, y = channel 1, z = channel 2
+channels:
+  count: 3
+  format: "{name}_{i}"
+  registers:
+    - name: lockin_ref_tw
+      access: rw
+      description: Reference-oscillator phase increment (mechanical mode frequency).
+    - name: drive_amplitude
+      access: rw
+      reset: 0x0
+      description: Feedback drive amplitude scale (14-bit unsigned).
+    - name: pid_setpoint
+      access: rw
+      description: Target for the demodulated error signal (signed). 0 = cool to zero.
+    - name: pid_gains
+      access: rw
+      description: "[31:16] = kp, [15:0] = ki (Q4.12 signed)."
+      fields:
+        - {name: kp, bits: [16, 31]}
+        - {name: ki, bits: [0, 15]}
+    - name: pid_output
+      access: ro
+      source: input
+      description: Latest PID feedback output (signed).
+    - name: lock_status
+      access: ro
+      source: input
+      description: bit 0 = engaged/stable.
+    - name: meas_i
+      access: ro
+      source: input
+      description: Latched in-phase (I) lock-in output for this axis.
+    - name: meas_q
+      access: ro
+      source: input
+      description: Latched quadrature (Q) lock-in output for this axis.

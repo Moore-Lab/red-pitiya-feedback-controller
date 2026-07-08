@@ -1,0 +1,31 @@
+# Vivado project + build artifacts (regenerated from source)
+**/vivado/
+vivado.jou
+vivado.log
+vivado_*.backup.jou
+vivado_*.backup.log
+build.log
+build.jou
+*.str
+.vivado_tmp/
+
+# Simulation output / compiled testbenches
+*.vcd
+*.lxt
+*.out
+*.vvp
+**/build/
+
+# Large generated coefficient ROMs (regenerate with the gen_*.py scripts)
+*.mem
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+*.npz
+
+# OS
+.DS_Store
+Thumbs.db

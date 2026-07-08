@@ -1,0 +1,113 @@
+# core.yaml — the minimal reusable register bank for a Red Pitaya feedback design.
+#
+# Copy this file, rename it, and edit it to define your experiment's registers.
+# Then run:  python regspec/gen_all.py regspec/specs/<your>.yaml
+# which regenerates the Verilog register file, the host Python module, and the
+# docs table — all three from this one source. Never edit those outputs by hand.
+#
+# Two kinds of registers:
+#   access: rw            -> a storage register the PS writes and the PL reads
+#                            (generated as an output port <name>_o on the Verilog module)
+#   access: ro, source: input -> a value the PL drives and the PS reads
+#                            (generated as an input port <name>_i: measurements, status)
+#   access: ro, source: const -> a fixed constant the PS reads (sanity words, params)
+#
+# The `channels:` block replicates a template of registers N times with an index
+# suffix — this is how you scale from one control axis to many (spin + x/y/z COM)
+# without hand-copying register definitions.
+
+meta:
+  name: core
+  description: >
+    Minimal reusable core: a control/status header, a freq/measurement gate,
+    a streaming-buffer control group, and a 2-channel feedback lane template.
+  base_address: 0x40000000
+  data_width: 32
+
+registers:
+  # --- header / bridge sanity ---
+  - name: control
+    access: rw
+    reset: 0x1
+    description: Global control bits.
+    fields:
+      - {name: sys_enable,   bits: 0, description: master enable / heartbeat}
+      - {name: dac_enable,   bits: 1, description: enable DAC output stage}
+      - {name: phase_reset,  bits: 2, description: pulse to reset all NCO phases}
+  - name: magic
+    access: ro
+    source: const
+    reset: 0xDEADBEEF
+    description: Bridge sanity constant — read to confirm the AXI link is alive.
+  - name: scratch
+    access: rw
+    description: Software round-trip test register (write/read to verify the bridge).
+
+  # --- shared measurement gate ---
+  - name: gate_cycles
+    access: rw
+    reset: 0x1312D0            # 1_250_000 = 10 ms at 125 MHz
+    description: Measurement gate window in clk cycles (0 -> module default).
+  - name: threshold
+    access: rw
+    reset: 0x32                # 50 codes
+    description: Measurement discriminator half-band (e.g. Schmitt hysteresis), in ADC codes.
+
+  # --- streaming buffer control ---
+  - name: buffer_enable
+    access: rw
+    description: bit 0 -> stream one record per gate into the circular buffer.
+    fields:
+      - {name: enable, bits: 0}
+  - name: buffer_write_ptr
+    access: ro
+    source: input
+    description: Next slot the PL will write (0 .. depth-1).
+  - name: buffer_sample_count
+    access: ro
+    source: input
+    description: Monotonic total records written since enable (lets the DAQ detect overrun).
+  - name: buffer_depth
+    access: ro
+    source: const
+    reset: 0x400               # 1024 records
+    description: Circular-buffer depth in records (from the PL BRAM parameter).
+
+# --- per-channel feedback lane (replicated `count` times) ---
+# Channel i gets: nco_tuning_word_ch{i}, nco_amplitude_ch{i}, ... etc.
+channels:
+  count: 2
+  format: "{name}_ch{i}"
+  registers:
+    - name: nco_tuning_word
+      access: rw
+      description: NCO phase increment. f_out = tuning_word * 125e6 / 2^32.
+    - name: nco_amplitude
+      access: rw
+      reset: 0x3FFF
+      description: NCO output amplitude (14-bit unsigned, full-scale 0x3FFF).
+    - name: pid_setpoint
+      access: rw
+      description: Feedback setpoint, in measurement counts (signed).
+    - name: pid_gains
+      access: rw
+      description: "[31:16] = kp, [15:0] = ki (Q4.12 signed)."
+      fields:
+        - {name: kp, bits: [16, 31]}
+        - {name: ki, bits: [0, 15]}
+    - name: pid_output
+      access: ro
+      source: input
+      description: Latest PID controller output (signed correction to the NCO word).
+    - name: lock_status
+      access: ro
+      source: input
+      description: bit 0 = locked (lock-acquisition state-machine output).
+    - name: meas_count
+      access: ro
+      source: input
+      description: Latched measurement count for this channel (the error-signal source).
+    - name: meas_amp
+      access: ro
+      source: input
+      description: Latched measurement amplitude for this channel.

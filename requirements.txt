@@ -1,0 +1,5 @@
+# Development-machine dependencies (code generation + host control).
+# The Red Pitaya board itself needs none of these — daemon.py and the generated
+# registers_*.py modules are stdlib-only and run on the board's Python 3.5.
+PyYAML>=5.1        # register-spec parsing (regspec/)
+numpy>=1.16        # host streaming + feedback (host/rp_optomech/)
