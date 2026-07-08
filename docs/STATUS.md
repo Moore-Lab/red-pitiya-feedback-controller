@@ -8,7 +8,7 @@ notes. States: `ready` · `claimed` · `in-progress` · `blocked` · `in-review`
 
 | WP | Title | State | Owner | Evidence |
 |----|-------|-------|-------|----------|
-| WP-0 | Register-spec codegen | **done (scaffold)** | — | `regspec/` runs; `core.yaml` → V/Py/MD; `--check` green; generated Python imports; Verilog reviewed |
+| WP-0 | Register-spec codegen | **done** | — | `regspec/` runs; `core.yaml` → V/Py/MD; `--check` green; 11 unit tests (`regspec/tests/`) cover allocation/channels/validation; generated Verilog verified by `tb_regfile` |
 | WP-1 | Generated-regfile self-checking testbench | **done** | — | `regspec/tb/tb_regfile.v` PASSES in Icarus (reset/const/rw/wstrb/input/ro-protect) |
 | WP-2 | RTL library parameterization + tb port | **done** | — | 12 module tbs pass via `scripts/run_sims.sh` (13/13 with tb_regfile). Untested by design: pure pin-driver bus modules `adc_interface`/`dac_interface`. `streaming_buffer` words_per_record param = follow-up. |
 | WP-3 | Host package integration test | **done** | — | `pytest host/rp_optomech/tests/` → 9 passed (fake daemon; BoardSession/StreamReader/FeedbackController) |

@@ -19,8 +19,8 @@ for spec in regspec/specs/*.yaml; do
 done
 
 echo ""
-echo "== [2/3] host package tests =="
-python -m pytest host/rp_optomech/tests/ -q
+echo "== [2/3] python tests (regspec engine + host package) =="
+python -m pytest regspec/tests/ host/rp_optomech/tests/ -q
 
 echo ""
 echo "== [3/3] register file + RTL simulations =="
