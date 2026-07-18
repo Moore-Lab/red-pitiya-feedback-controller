@@ -8,6 +8,13 @@
 //   At full tuning_word = 2^32 - 1, output frequency = 125 MHz (aliased).
 //   Useful range: 0 .. ~25 MHz (DAC reconstruction filter rolloff).
 //
+// ADC_FS vs FABRIC_CLK (WP-ADCFS): this is the OUTPUT NCO. It intentionally runs
+// in the 125 MHz fabric/DAC domain — one phase step every fabric cycle — and is NOT
+// gated by the ADC-sample strobe. The DAC is clocked at 125 MS/s regardless of the
+// ADC sample rate, so the tuning-word-to-frequency mapping below stays referenced to
+// 125e6. Only the measurement/demod side (adc_interface, cic_decimator, lock_in,
+// freq_counter) advances on the ADC strobe.
+//
 // Sine LUT: 4096-entry × 14-bit signed (one BRAM18 block).
 //
 // Amplitude scaling: sine_val * amplitude / 2^14.

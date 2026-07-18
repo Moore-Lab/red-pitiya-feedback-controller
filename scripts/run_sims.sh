@@ -15,6 +15,23 @@ IVERILOG="${IVERILOG:-iverilog}"
 VVP="${VVP:-vvp}"
 mkdir -p build
 
+# --- ADC_FS override (WP-ADCFS) ------------------------------------------------
+# The RTL library derives an ADC-sample strobe from ADC_FS / FABRIC_CLK (both 125e6
+# by default => a strobe every fabric cycle => original behaviour). To simulate the
+# 65-16 TI board (62.5 MS/s ADC = a valid strobe every OTHER fabric cycle), export
+# ADC_FS, e.g.:  ADC_FS=62500000 scripts/run_sims.sh
+# We thread it as an iverilog -D define ONLY into the tbs whose stimulus is valid at
+# the reduced sample rate (the freq_counter and the forward lane datapath, which
+# assert commanded frequency == measured at the new rate). Tbs whose stimulus drives
+# a fresh sample every fabric cycle (tb_lock_in, tb_cic_decimator, tb_comp_fir) are
+# left at the default so their every-cycle assumptions still hold. Default behaviour
+# (ADC_FS unset or == 125e6) is unchanged: ADCFS_DEF stays empty everywhere.
+ADCFS_DEF=""
+if [ -n "${ADC_FS:-}" ] && [ "${ADC_FS}" != "125000000" ] && [ "${ADC_FS}" != "125e6" ]; then
+    ADCFS_DEF="-DADC_FS=${ADC_FS}"
+    echo "== ADC_FS override = ${ADC_FS} Hz (threading ${ADCFS_DEF} into ADC-rate tbs) =="
+fi
+
 # Regenerate coefficient ROMs the DSP tbs need, into the sim working dir.
 python rtl/dsp/gen_sine_lut.py   >/dev/null 2>&1 || true
 python rtl/dsp/gen_fir_coeffs.py >/dev/null 2>&1 || true
@@ -47,7 +64,7 @@ run tb_regfile          ""      "$ROOT"       regspec/tb/tb_regfile.v regspec/ge
 echo "== rtl library =="
 run tb_blinker          ""      "$ROOT"       rtl/tb/tb_blinker.v          rtl/infra/blinker.v
 run tb_cic_decimator    ""      "$ROOT"       rtl/tb/tb_cic_decimator.v    rtl/dsp/cic_decimator.v
-run tb_freq_counter     ""      "$ROOT"       rtl/tb/tb_freq_counter.v     rtl/measurement/freq_counter.v
+run tb_freq_counter     "$ADCFS_DEF" "$ROOT"   rtl/tb/tb_freq_counter.v     rtl/measurement/freq_counter.v
 run tb_lock_acquisition ""      "$ROOT"       rtl/tb/tb_lock_acquisition.v rtl/feedback/lock_acquisition.v
 run tb_pid_controller   ""      "$ROOT"       rtl/tb/tb_pid_controller.v   rtl/feedback/pid_controller.v
 run tb_streaming_buffer ""      "$ROOT"       rtl/tb/tb_streaming_buffer.v rtl/infra/streaming_buffer.v
@@ -60,7 +77,7 @@ run tb_sign_extend      ""      "$ROOT"       rtl/tb/tb_sign_extend_14to16.v rtl
 run tb_lock_in          ""      "$ROOT/build"  rtl/tb/tb_lock_in.v          rtl/measurement/lock_in.v
 
 echo "== lane integration =="
-run tb_lane_datapath    ""      "$ROOT/build"  rtl/tb/tb_lane_datapath.v \
+run tb_lane_datapath    "$ADCFS_DEF" "$ROOT/build"  rtl/tb/tb_lane_datapath.v \
     rtl/dsp/nco_summer.v rtl/dsp/dac_sine.v rtl/io/sign_extend_14to16.v rtl/measurement/freq_counter.v
 run tb_lane_closed_loop ""      "$ROOT/build"  rtl/tb/tb_lane_closed_loop.v \
     rtl/feedback/lock_acquisition.v rtl/feedback/pid_controller.v rtl/dsp/nco_summer.v \

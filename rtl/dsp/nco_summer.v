@@ -1,5 +1,10 @@
 `timescale 1ns / 1ps
 
+// ADC_FS vs FABRIC_CLK (WP-ADCFS): this feeds the OUTPUT NCO (dac_sine), so it
+// stays in the 125 MHz fabric/DAC domain and is NOT gated by the ADC-sample strobe.
+// Its inputs update at the gate rate (~100 Hz) which is far slower than either clock,
+// so no ADC-rate parameterization is required here.
+//
 // Combines a static "base" NCO tuning word (set from AXI) with a signed PID
 // correction. Output is saturated to the 32-bit unsigned tuning_word range.
 //

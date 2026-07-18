@@ -18,8 +18,30 @@
 // a CORDIC sqrt(I^2+Q^2) + atan2 phase if true magnitude/phase accuracy is needed, and
 // add an I/Q low-pass (CIC+FIR) ahead of the gate accumulator for narrowband work.
 //
+// ADC_FS vs FABRIC_CLK (WP-ADCFS)
+// -------------------------------
+// The demodulator runs in the 125 MHz fabric domain but the ADC sample stream is
+// only valid at ADC_FS (62.5 MS/s on 65-16 TI => a valid strobe every OTHER fabric
+// cycle). The reference NCO advances and the I/Q accumulators integrate ONLY on the
+// ADC-sample strobe, so the demod is correct at the true sample rate. The gate window
+// (`gate_cycles`) is still counted in fabric cycles, i.e. it defines the same wall-clock
+// integration window regardless of ADC_FS; gate_done remains the measurement->control
+// handoff strobe. STROBE_DIV is derived from the build-time ADC_FS / FABRIC_CLK defines:
+//     STROBE_DIV = FABRIC_CLK / ADC_FS   (integer, clamped >= 1)
+// DEFAULT (ADC_FS == FABRIC_CLK == 125e6) => STROBE_DIV = 1 => a strobe every cycle =>
+// bit-identical to the original every-cycle accumulator (tb_lock_in still PASSES).
+//
+`ifndef ADC_FS
+  `define ADC_FS 125000000
+`endif
+`ifndef FABRIC_CLK
+  `define FABRIC_CLK 125000000
+`endif
 module lock_in #(
-    parameter integer DATA_WIDTH = 16
+    parameter integer DATA_WIDTH = 16,
+    // Fabric-cycles per ADC sample. Default 1 (accumulate every cycle).
+    parameter integer STROBE_DIV = ((`FABRIC_CLK / `ADC_FS) < 1)
+                                       ? 1 : (`FABRIC_CLK / `ADC_FS)
 )(
     input  wire                         clk,
     input  wire                         rst_n,
@@ -41,6 +63,12 @@ module lock_in #(
     output reg  signed [31:0]           i_out,
     output reg  signed [31:0]           q_out
 );
+    // --- ADC-sample strobe: high once every STROBE_DIV fabric cycles ---
+    // For the default STROBE_DIV==1 the compare is (0 >= 0) so stb_cnt stays 0 and
+    // adc_stb is high every cycle (bit-identical to the original path).
+    reg  [15:0] stb_cnt;
+    wire        adc_stb = (stb_cnt == 16'd0);
+
     // --- reference NCO + sine LUT (cos = sin + 90 deg) ---
     reg  [31:0] phase;
     reg  signed [13:0] lut [0:4095];
@@ -75,14 +103,21 @@ module lock_in #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
+            stb_cnt <= 16'd0;
             phase <= 32'd0; gate_ctr <= 32'd0;
             acc_i <= 64'sd0; acc_q <= 64'sd0;
             gate_done <= 1'b0; error_count <= 32'sd0; amplitude <= 16'd0;
             i_out <= 32'sd0; q_out <= 32'sd0;
         end else begin
-            phase <= phase + ref_tuning_word;
+            // free-running ADC-sample strobe divider
+            stb_cnt <= (stb_cnt >= STROBE_DIV - 1) ? 16'd0 : stb_cnt + 16'd1;
 
-            // gate counter: reset on the authoritative boundary for the active mode
+            // reference NCO advances one step per ADC sample, not per fabric cycle
+            if (adc_stb)
+                phase <= phase + ref_tuning_word;
+
+            // gate counter runs in the fabric domain (fixed wall-clock window),
+            // independent of the ADC strobe
             if (sync_slave_mode)
                 gate_ctr <= sync_reset ? 32'd0 : gate_ctr + 1'b1;   // watchdog only
             else
@@ -94,12 +129,16 @@ module lock_in #(
                 q_out       <= q_scaled[31:0];
                 error_count <= mag[31:0];
                 amplitude   <= (mag > 64'd65535) ? 16'hFFFF : mag[15:0];
-                acc_i       <= prod_i;    // restart with the current sample
-                acc_q       <= prod_q;
+                // restart the accumulator: seed with this sample's product if the
+                // gate boundary coincides with a valid ADC sample, else start clean
+                acc_i       <= adc_stb ? prod_i : 64'sd0;
+                acc_q       <= adc_stb ? prod_q : 64'sd0;
             end else begin
                 gate_done <= 1'b0;
-                acc_i     <= acc_i + prod_i;
-                acc_q     <= acc_q + prod_q;
+                if (adc_stb) begin
+                    acc_i <= acc_i + prod_i;   // integrate only on ADC samples
+                    acc_q <= acc_q + prod_q;
+                end
             end
         end
     end
