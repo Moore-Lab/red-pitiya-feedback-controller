@@ -35,19 +35,40 @@
   `define FABRIC_CLK 125000000
 `endif
 
+// IO-FLAVOR SELECTION (65-16 TI serial-LVDS vs 125-14 parallel-CMOS)
+// ------------------------------------------------------------------
+// This module is the 125-14 parallel-CMOS front end: it registers the two
+// parallel ADC buses and converts the on-pin offset-binary to two's-complement
+// (a single MSB invert). The 65-16 TI board's serial-LVDS front end is a
+// SEPARATE module, rtl/io/adc_deserial_ll.v (IDELAY/ISERDES lane capture ->
+// 16-bit word), which already delivers signed samples and shares this module's
+// output contract (adc_a, adc_b, adc_valid).
+//
+// The ADC_SERIAL parameter lets a build select the io flavor's FORMAT behaviour
+// through one instantiation:
+//   * ADC_SERIAL == 0 (DEFAULT): 125-14 parallel. Offset-binary -> two's-comp
+//     via MSB invert. With DW==14 this is BIT-IDENTICAL to the original module.
+//   * ADC_SERIAL == 1: fed by adc_deserial_ll (already-signed words); the MSB
+//     invert is skipped (pure register + strobe hold). Set DW=16 for the 65-16.
+// The DEFAULTS (ADC_SERIAL=0, DW=14) leave the parallel path unchanged.
 module adc_interface #(
     // Fabric-cycles per ADC sample. Default 1 (a sample every fabric cycle).
     // Derived from the ADC_FS / FABRIC_CLK build defines; override per-build.
     parameter integer STROBE_DIV = ((`FABRIC_CLK / `ADC_FS) < 1)
-                                       ? 1 : (`FABRIC_CLK / `ADC_FS)
+                                       ? 1 : (`FABRIC_CLK / `ADC_FS),
+    // Sample width. 14 for 125-14 (default), 16 for 65-16 TI serial flavor.
+    parameter integer DW = 14,
+    // 0 = 125-14 parallel (offset-binary -> two's-comp MSB flip). 1 = serial
+    // flavor (input already signed; no flip). Default 0 keeps parallel behavior.
+    parameter         ADC_SERIAL = 0
 )(
-    input  wire        clk,        // 125 MHz fabric clock (from IBUFDS on adc_clk_p/n)
-    input  wire [13:0] adc_dat_a,
-    input  wire [13:0] adc_dat_b,
+    input  wire            clk,        // 125 MHz fabric clock (from IBUFDS on adc_clk_p/n)
+    input  wire [DW-1:0]   adc_dat_a,
+    input  wire [DW-1:0]   adc_dat_b,
 
-    output reg signed [13:0] adc_a,
-    output reg signed [13:0] adc_b,
-    output reg               adc_valid  // 1-cycle strobe: adc_a/adc_b freshly captured
+    output reg signed [DW-1:0] adc_a,
+    output reg signed [DW-1:0] adc_b,
+    output reg                 adc_valid  // 1-cycle strobe: adc_a/adc_b freshly captured
 );
 
 // -------------------------------------------------------------------------
@@ -62,8 +83,17 @@ always @(posedge clk)
 
 always @(posedge clk) begin
     if (adc_stb) begin
-        adc_a <= {~adc_dat_a[13], adc_dat_a[12:0]};
-        adc_b <= {~adc_dat_b[13], adc_dat_b[12:0]};
+        if (ADC_SERIAL) begin
+            // Serial flavor: samples arrive already two's-complement signed
+            // (from adc_deserial_ll) — register/hold only, no format flip.
+            adc_a <= adc_dat_a;
+            adc_b <= adc_dat_b;
+        end else begin
+            // 125-14 parallel: offset-binary on the pins -> two's-comp (MSB flip).
+            // DW==14 reproduces the original {~[13],[12:0]} exactly.
+            adc_a <= {~adc_dat_a[DW-1], adc_dat_a[DW-2:0]};
+            adc_b <= {~adc_dat_b[DW-1], adc_dat_b[DW-2:0]};
+        end
     end
     adc_valid <= adc_stb;
 end
