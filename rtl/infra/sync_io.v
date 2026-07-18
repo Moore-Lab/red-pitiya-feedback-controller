@@ -3,11 +3,20 @@
 // Multi-board trigger synchroniser ("Path A").
 //
 // Transports a 1-cycle pulse from the master board's freq_counter gate
-// boundary to the slave board's freq_counter / streaming_buffer over an LVDS
-// pair on the DAISY (SATA) connector. Sample clocks are NOT synchronised —
-// each board still runs on its own 125 MHz crystal. Only the gate window
-// boundary is aligned, which is what the host-PC coupling layer needs to
-// align records by index across boards.
+// boundary to the slave board's freq_counter / streaming_buffer over a
+// differential pair on the Gen-2 S1/S2 daisy connector (Daisy_IO, 1V8). This
+// retargets the original-gen SATA/DAISY link (verified on the Zynq-7010
+// STEMlab 125-14) to the STEMlab 65-16 TI (Gen 2, xc7z020clg400-1). Sample
+// clocks are NOT synchronised — each board still runs on its own crystal.
+// Only the gate window boundary is aligned, which is what the host-PC
+// coupling layer needs to align records by index across boards.
+//
+// Retarget note (Gen 1 SATA/DAISY → Gen 2 S1/S2): only the physical layer
+// changes — the pin LOCs and the differential I/O standard move to the S1/S2
+// Daisy_IO pins (see constraints/red_pitaya.xdc). The 2-FF ASYNC_REG CDC, the
+// edge detector, and the master/slave/retransmit distribution below are
+// UNCHANGED (bench-verified) and the port-level interface is stable so
+// WP-BD-A/B wire the four daisy ports unchanged.
 //
 // Modes (gated by reg27_sync_control bits):
 //   sync_master_enable      drive DAISY-OUT from local master_pulse
@@ -52,11 +61,14 @@ module sync_io (
 );
 
 // --- DAISY-IN: differential receive ---
-// The Red Pitaya DAISY pins are DIFF_HSTL_I_18 in Pavel Demin's canonical
-// constraints (cfg/ports.xdc) — same I/O standard as the ADC clock, NOT
-// LVDS_25. The brief in docs/multi_board_trigger_sync.md §8 was incorrect
-// on this point. The XDC entries in fpga/constraints/red_pitaya.xdc use
-// the verified DIFF_HSTL_I_18 standard.
+// S1/S2 Daisy_IO is a 1V8 differential class. On the Red Pitaya clg400 part
+// (xc7z020, all HR banks) the electrically-valid 1V8 differential I/O standard
+// is DIFF_HSTL_I_18 — the same standard used for the ADC clock pair, and the
+// bench-verified setting carried over from Gen 1. Native LVDS is NOT usable
+// here: 7-series HR banks only offer LVDS_25 (VCCO=2.5 V for the output
+// buffer), which conflicts with the 1.8 V daisy/ADC bank VCCO and would fail
+// DRC. See constraints/red_pitaya.xdc for the S1/S2 pin LOCs and the matching
+// IOSTANDARD; keep the IBUFDS/OBUFDS standard in step with the XDC.
 wire daisy_rx;
 `ifdef SIM
     // Sim: drive single-ended from daisy_p_i. daisy_n_i is unused.
