@@ -9,6 +9,13 @@
 // every clock and produces a fresh out_valid one pipeline latency after each
 // in_valid pulse.
 //
+// ADC_FS vs FABRIC_CLK (WP-ADCFS): this block is already rate-agnostic — it
+// processes exactly one sample per in_valid pulse. Driven by cic_decimator's
+// out_valid (which now pulses at ADC_FS / R), it automatically follows the ADC
+// sample rate with no parameter of its own. The droop-compensation coefficients
+// depend only on the CIC's R and N (the sinc^4 shape), not on absolute ADC_FS, so
+// fir_coeffs.mem does not need regenerating when only ADC_FS changes.
+//
 // Pipeline: 1 cycle (multiply) + 4 cycles (adder tree) = 5 cycles total.
 module comp_fir #(
     parameter NTAPS       = 16,

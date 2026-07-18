@@ -21,7 +21,31 @@
 // is `sync_reset`, transported from the master over the DAISY link via
 // sync_io. This makes the slave's gate boundary independent of relative
 // crystal drift between the two boards.
-module freq_counter (
+//
+// ADC_FS vs FABRIC_CLK (WP-ADCFS)
+// -------------------------------
+// The counter runs in the 125 MHz fabric domain but the ADC sample stream is only
+// valid at ADC_FS (62.5 MS/s on 65-16 TI => a valid strobe every OTHER fabric cycle).
+// The input pipeline and Schmitt state advance ONLY on the ADC-sample strobe, so
+// zero-crossings are detected at the true sample rate (and each detected edge still
+// produces exactly one 1-cycle rising pulse). The gate down-counter keeps counting
+// fabric cycles, so `gate_cycles` defines the same wall-clock window regardless of
+// ADC_FS and the frequency mapping f_in = count * f_fabric / gate_cycles is preserved.
+// STROBE_DIV is derived from the build-time ADC_FS / FABRIC_CLK defines:
+//     STROBE_DIV = FABRIC_CLK / ADC_FS   (integer, clamped >= 1)
+// DEFAULT (ADC_FS == FABRIC_CLK == 125e6) => STROBE_DIV = 1 => a strobe every cycle
+// => bit-identical to the original every-cycle path (tb_freq_counter still PASSES).
+`ifndef ADC_FS
+  `define ADC_FS 125000000
+`endif
+`ifndef FABRIC_CLK
+  `define FABRIC_CLK 125000000
+`endif
+module freq_counter #(
+    // Fabric-cycles per ADC sample. Default 1 (sample every cycle).
+    parameter integer STROBE_DIV = ((`FABRIC_CLK / `ADC_FS) < 1)
+                                       ? 1 : (`FABRIC_CLK / `ADC_FS)
+) (
     input  wire                  clk,
     input  wire                  rst_n,
     input  wire signed [15:0]    sample_in,
@@ -45,7 +69,20 @@ always @(posedge clk) begin
     neg_threshold_reg <= -threshold;
 end
 
+// --- ADC-sample strobe: high once every STROBE_DIV fabric cycles ---
+// For the default STROBE_DIV==1 the compare is (0 >= 0) so stb_cnt stays 0 and
+// adc_stb is high every cycle (bit-identical to the original path).
+reg  [15:0] stb_cnt;
+wire        adc_stb = (stb_cnt == 16'd0);
+always @(posedge clk) begin
+    if (!rst_n) stb_cnt <= 16'd0;
+    else        stb_cnt <= (stb_cnt >= STROBE_DIV - 1) ? 16'd0 : stb_cnt + 16'd1;
+end
+
 // --- Input pipeline + Schmitt-trigger state machine ---
+// The pipeline advances only on the ADC-sample strobe; on non-strobe cycles the
+// rising-edge flag is forced low so each detected crossing yields exactly one
+// 1-cycle pulse (crossing_cnt below accumulates it once).
 reg signed [15:0] sample_reg;
 reg               state, state_prev;
 reg               rising_edge_reg;
@@ -56,7 +93,7 @@ always @(posedge clk) begin
         state           <= 1'b0;
         state_prev      <= 1'b0;
         rising_edge_reg <= 1'b0;
-    end else begin
+    end else if (adc_stb) begin
         sample_reg <= sample_in;
 
         if      (sample_reg > threshold_reg)     state <= 1'b1;
@@ -65,6 +102,8 @@ always @(posedge clk) begin
 
         state_prev      <= state;
         rising_edge_reg <= state && !state_prev;
+    end else begin
+        rising_edge_reg <= 1'b0;   // no fresh sample => no new edge this cycle
     end
 end
 
