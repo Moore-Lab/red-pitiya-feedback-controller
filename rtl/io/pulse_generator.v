@@ -67,26 +67,38 @@ module pulse_generator (
     // for a fresh edge; only a genuine 0->1 transition arms a burst / restarts.
     wire trig_rise = trigger & ~trigger_d;
 
-    // period_done: this is the last cycle of a period (mirrors blinker.v's
-    // `cnt + 1 >= half_period`, which also tolerates live period changes).
-    wire period_done = (phase_cnt + 32'd1) >= period;
+    // Pre-registered comparison constants: period-1 and width-1 are registered once
+    // (period/width are quasi-static AXI inputs) so the hot phase_cnt -> {period_done,
+    // asserted} paths are pure compares against the registered phase_cnt with NO 32-bit
+    // adder in series — the adder+compare chain missed 125 MHz timing on real silicon
+    // (board_charge). A period/width change takes effect one cycle later, harmless.
+    // See WP-LOCKIN-TIMING.
+    reg [31:0] period_m1;   // period - 1  (0 if period == 0)
+    reg [31:0] width_m1;    // width  - 1  (0 if width  == 0)
+    reg        width_nz;    // width != 0
+    // period_done: last cycle of a period.  (phase_cnt+1 >= period) == (phase_cnt >= period-1)
+    wire period_done = (phase_cnt >= period_m1);
 
     // --- Combinational next-state -----------------------------------------
     reg [31:0] next_phase;
     reg [15:0] next_pulse_cnt;
     reg        next_running;
+    reg        next_zero;      // 1 iff next_phase == 0, tracked explicitly so the asserted
+                               // path needs no adder on phase_cnt (idle holds phase_cnt @ 0)
 
     always @(*) begin
-        // hold by default
+        // hold by default (idle: phase_cnt is 0 whenever the block is not running)
         next_phase     = phase_cnt;
         next_pulse_cnt = pulse_cnt;
         next_running   = running;
+        next_zero      = 1'b1;
 
         if (!enable) begin
             // idle: clear everything
             next_phase     = 32'd0;
             next_pulse_cnt = 16'd0;
             next_running   = 1'b0;
+            next_zero      = 1'b1;
         end else if (count == 16'd0) begin
             // ---------- continuous mode ----------
             if (!running) begin
@@ -94,27 +106,33 @@ module pulse_generator (
                 next_running   = 1'b1;
                 next_phase     = 32'd0;
                 next_pulse_cnt = 16'd0;
+                next_zero      = 1'b1;
             end else if (trig_rise) begin
                 // re-align the train to the trigger
                 next_phase = 32'd0;
+                next_zero  = 1'b1;
             end else if (period_done) begin
                 next_phase = 32'd0;
+                next_zero  = 1'b1;
             end else begin
                 next_phase = phase_cnt + 32'd1;
+                next_zero  = 1'b0;
             end
         end else begin
             // ---------- burst mode (count = N > 0) ----------
             if (!running) begin
-                // wait for a rising trigger to arm the burst
+                // wait for a rising trigger to arm the burst (else hold, idle @ phase 0)
                 if (trig_rise) begin
                     next_running   = 1'b1;
                     next_phase     = 32'd0;
                     next_pulse_cnt = 16'd0;
+                    next_zero      = 1'b1;
                 end
             end else begin
                 // emitting the burst; mid-burst triggers are ignored
                 if (period_done) begin
                     next_phase = 32'd0;
+                    next_zero  = 1'b1;
                     if ((pulse_cnt + 16'd1) >= count) begin
                         // Nth period complete -> return to idle
                         next_running   = 1'b0;
@@ -124,14 +142,18 @@ module pulse_generator (
                     end
                 end else begin
                     next_phase = phase_cnt + 32'd1;
+                    next_zero  = 1'b0;
                 end
             end
         end
     end
 
-    // Output for the NEXT cycle, computed from next-state so the registered
-    // output stays exactly aligned with (next_running, next_phase).
-    wire next_asserted = next_running && (next_phase < width);
+    // Asserted decision with NO adder on the hot path: when next_phase wraps to 0 the pulse
+    // asserts iff width != 0; otherwise (next_phase == phase_cnt+1) it asserts iff
+    // phase_cnt+1 < width, i.e. phase_cnt < width-1 == width_m1 — a pure compare on the
+    // registered phase_cnt. Exactly equal to the old (next_running && next_phase < width).
+    wire phase_lt_w    = (phase_cnt < width_m1);
+    wire next_asserted = next_running && (next_zero ? width_nz : phase_lt_w);
 
     // --- Sequential --------------------------------------------------------
     always @(posedge clk or negedge rst_n) begin
@@ -142,8 +164,15 @@ module pulse_generator (
             trigger_d <= 1'b0;
             active    <= 1'b0;
             pulse_out <= 14'd0;
+            period_m1 <= 32'd0;
+            width_m1  <= 32'd0;
+            width_nz  <= 1'b0;
         end else begin
             trigger_d <= trigger;
+            // pre-register the comparison constants (quasi-static; settle in 1 cycle)
+            period_m1 <= (period == 32'd0) ? 32'd0 : period - 32'd1;
+            width_m1  <= (width  == 32'd0) ? 32'd0 : width  - 32'd1;
+            width_nz  <= (width != 32'd0);
             phase_cnt <= next_phase;
             pulse_cnt <= next_pulse_cnt;
             running   <= next_running;

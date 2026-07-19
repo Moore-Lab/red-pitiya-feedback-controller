@@ -102,7 +102,8 @@ module tb_lock_in;
         @(negedge clk); sync_reset = 1;      // one-cycle synchronised pulse
         @(posedge clk);                      // DUT latches here
         @(negedge clk); sync_reset = 0;
-        repeat (3) @(posedge clk);
+        repeat (6) @(posedge clk);   // allow the demod MAC pipeline latency (gate_done is
+                                     // delayed a few cycles) before sampling the result
         if (!slave_gate_seen) begin
             $display("FAIL: slave mode — sync_reset did not produce a gate_done");
             errors = errors + 1;
